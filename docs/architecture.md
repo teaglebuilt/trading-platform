@@ -1,7 +1,5 @@
 
 
-```mermaid
-
 ### Apps
 - **orchestrator/** → Workflow hub (n8n integration).
 - **signal-adapter/** → Thin boundary for incoming signals (validate + persist).

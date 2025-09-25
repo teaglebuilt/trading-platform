@@ -1,0 +1,17 @@
+[tool.uv.workspace]
+members = [
+  "apps/*",
+  "apps/mcp-servers/*",
+  "packages/*",
+  "packages/brokers/*",
+]
+# exclude = ["packages/scratch-*"]  # (optional)
+
+# Optional: define internal libs once here so members inherit the source
+[tool.uv.sources]
+common = { workspace = true }
+risk = { workspace = true }
+storage = { workspace = true }
+alpaca-adapter = { workspace = true }
+etrade-adapter = { workspace = true }
+freqtrade-adapter = { workspace = true }
