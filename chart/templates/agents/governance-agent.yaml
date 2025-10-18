@@ -1,0 +1,36 @@
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: governance-agent
+  namespace: ai
+spec:
+  type: Declarative
+  description: Enforces safety and compliance for all automated trades.
+  declarative:
+    a2aConfig:
+      skills:
+      - id: risk-compliance
+        name: Risk and Compliance Validation
+        description: >
+          Validates OrderIntents against global risk, ethics, and compliance rules.
+        tags: [ risk, governance, policy ]
+        examples:
+        - "Approve or reject trade intents exceeding daily loss limits."
+    systemMessage: |
+{{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
+{{- if $configMap }}
+{{ index $configMap.data "governance-agent.md" | nindent 6 }}
+{{- else }}
+      # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
+{{- end }}
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1
+          memory: 512Mi
+    modelConfig: openai-gpt-4o-mini

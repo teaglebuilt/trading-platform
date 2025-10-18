@@ -1,0 +1,7 @@
+---
+apiVersion: v2
+name: trading-agents
+description: Helm Chart for Quantified Hedge Fund Team
+type: application
+version: '1.0.0'
+appVersion: 'v1.0.0'

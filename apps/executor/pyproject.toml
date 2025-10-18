@@ -1,0 +1,13 @@
+[project]
+name = "executor"
+version = "0.1.0"
+description = "Consumes order intents and executes them on brokers"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.8",
+  "redis>=5.0",
+  "alpaca-py>=0.23"
+]
+
+[tool.uv.sources]
+common = { workspace = true }

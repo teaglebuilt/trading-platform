@@ -1,0 +1,36 @@
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: timing-agent
+  namespace: ai
+spec:
+  type: Declarative
+  description: Validates entry timing using short-term indicators and volume.
+  declarative:
+    a2aConfig:
+      skills:
+      - id: entry-timing
+        name: Entry Timing Validation
+        description: >
+          Confirms optimal timing for executing trades using RSI, EMA, and volume data.
+        tags: [ timing, execution, signals ]
+        examples:
+        - "Confirm if AAPL buy signal should execute now or wait based on RSI(14)."
+    systemMessage: |
+{{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
+{{- if $configMap }}
+{{ index $configMap.data "timing-agent.md" | nindent 6 }}
+{{- else }}
+      # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
+{{- end }}
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1
+          memory: 512Mi
+    modelConfig: openai-gpt-4o-mini

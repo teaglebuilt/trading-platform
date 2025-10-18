@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "alpaca-mcp-server": {
+      "type": "http",
+      "url": "http://ai.homelab.internal/mcp",
+      "env": {
+        "ALPACA_API_KEY": "${ALPACA_API_KEY}",
+        "ALPACA_API_SECRET": "${ALPACA_SECRET_KEY}"
+      }
+    }
+  }
+}

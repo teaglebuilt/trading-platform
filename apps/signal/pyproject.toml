@@ -1,0 +1,17 @@
+[project]
+name = "signal-api"
+version = "0.1.0"
+description = "Validates and routes trading signals into the system"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "pydantic>=2.8",
+  "redis>=5.0"
+]
+
+[tool.uv.sources]
+common = { workspace = true }
+
+[project.scripts]
+signal-api = "api.main:cli"

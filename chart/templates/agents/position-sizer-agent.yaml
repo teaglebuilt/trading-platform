@@ -1,0 +1,36 @@
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: position-sizer-agent
+  namespace: ai
+spec:
+  type: Declarative
+  description: Determines trade size based on risk limits, volatility, and AI confidence.
+  declarative:
+    a2aConfig:
+      skills:
+      - id: position-sizing
+        name: Position Sizing
+        description: >
+          Calculates position quantities based on account equity, volatility, and confidence levels.
+        tags: [ risk, sizing, ai ]
+        examples:
+        - "Size each position based on confidence score and risk constraints."
+    systemMessage: |
+{{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
+{{- if $configMap }}
+{{ index $configMap.data "position-sizer.md" | nindent 6 }}
+{{- else }}
+      # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
+{{- end }}
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1
+          memory: 512Mi
+    modelConfig: openai-gpt-4o-mini

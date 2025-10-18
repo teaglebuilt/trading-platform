@@ -1,0 +1,23 @@
+//@version=6
+indicator("Custom Index: AAPL+MSFT+GOOGL", overlay=false)
+
+// --- list of components and weights ---
+symA = input.symbol("AAPL", "Symbol 1")
+symB = input.symbol("MSFT", "Symbol 2")
+symC = input.symbol("GOOGL", "Symbol 3")
+
+wA = input.float(0.33, "Weight AAPL")
+wB = input.float(0.33, "Weight MSFT")
+wC = input.float(0.34, "Weight GOOGL")
+
+// --- pull data ---
+a = request.security(symA, timeframe.period, close)
+b = request.security(symB, timeframe.period, close)
+c = request.security(symC, timeframe.period, close)
+
+// --- build normalized weighted index ---
+base = a[100] + b[100] + c[100]
+index = (a * wA + b * wB + c * wC) / (wA + wB + wC)
+index_norm = index / base * 100
+
+plot(index_norm, "Custom Index", color=color.new(color.blue, 0))

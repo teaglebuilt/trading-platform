@@ -1,0 +1,23 @@
+---
+apiVersion: kagent.dev/v1alpha1
+kind: ToolServer
+metadata:
+  name: alpaca-mcp
+  namespace: ai
+spec:
+  description: "Alpaca MCP Server for trading, market data, positions"
+  config:
+    stdio:
+      command: python
+      args:
+      - /opt/alpaca_mcp_server/alpaca_mcp_server.py
+      - --transport
+      - http
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      env:
+        ALPACA_API_KEY: {{ .Values.alpaca.apiKey | quote }}
+        ALPACA_SECRET_KEY: {{ .Values.alpaca.secretKey | quote }}
+        ALPACA_PAPER_TRADE: {{ .Values.alpaca.paperTrade | default "True" | quote }}

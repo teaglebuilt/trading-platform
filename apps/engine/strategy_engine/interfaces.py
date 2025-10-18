@@ -46,3 +46,9 @@ class EngineAdapter(Protocol):
 def is_crypto_symbol(symbol: str) -> bool:
     # naive heuristic; adapt to your symbology
     return symbol.endswith("USD") or symbol.upper() in {"BTC", "ETH", "SOL"}
+
+
+def classify_asset(symbol: str) -> Literal["crypto", "equity"]:
+    if symbol.endswith("USD"):
+        return "crypto"
+    return "equity"

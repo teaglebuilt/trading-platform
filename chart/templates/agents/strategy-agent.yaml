@@ -1,0 +1,35 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: strategy-agent
+  namespace: ai
+spec:
+  type: Declarative
+  description: Selects trading strategies based on market context and historical backtests.
+  declarative:
+    a2aConfig:
+      skills:
+      - id: strategy-selection
+        name: Strategy Selection
+        description: >
+          Chooses trading strategies (EMA, Markov, Reinforcement) and outputs signals.
+        tags: [ strategy, ai, trading ]
+        examples:
+        - "Generate buy/sell signals for large-cap tech."
+    systemMessage: |
+{{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
+{{- if $configMap }}
+{{ index $configMap.data "strategy-agent.md" | nindent 6 }}
+{{- else }}
+      # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
+{{- end }}
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 256Mi
+        limits:
+          cpu: 1
+          memory: 512Mi
+    modelConfig: openai-gpt-4o-mini

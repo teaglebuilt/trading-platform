@@ -1,0 +1,16 @@
+[project]
+name = "portfolio"
+version = "0.1.0"
+description = "Tracks executed trades, positions, and balances"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.8",
+  "redis>=5.0",
+  "duckdb>=1.1.0"
+]
+
+[tool.uv.sources]
+common = { workspace = true }
+
+[project.scripts]
+portfolio-pnl = "cli:main"

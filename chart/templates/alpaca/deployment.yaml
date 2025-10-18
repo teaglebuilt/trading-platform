@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpaca-mcp
+  namespace: ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: alpaca-mcp }
+  template:
+    metadata:
+      labels: { app: alpaca-mcp }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: alpaca-mcp
+        image: alpaca/alpaca-mcp-server:latest
+        command:
+        - python
+        - /opt/alpaca_mcp_server/alpaca_mcp_server.py
+        - --transport
+        - http
+        - --host
+        - 0.0.0.0
+        - --port
+        - "8000"
+        envFrom:
+        - secretRef:
+            name: alpaca-api-keys
+        ports:
+        - containerPort: 8000
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1000
+          seccompProfile:
+            type: RuntimeDefault

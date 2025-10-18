@@ -1,0 +1,76 @@
+//@version=6
+strategy("Markov Chain Strategy (Universal)",
+     overlay = true,
+     fill_orders_on_standard_ohlc = true,
+     margin_long = 100,
+     margin_short = 100)
+
+// === Parameters ===
+window      = input.int(50, "Transition Window")
+threshold   = input.float(0.6, "Continuation Probability Threshold", step = 0.05)
+show_labels = input.bool(true, "Show State Labels")
+min_volume  = input.int(100000, "Min Volume Filter", tooltip = "Skip signals on low-volume assets")
+
+// === Skip illiquid tickers ===
+is_liquid = volume >= min_volume
+
+// === Compute Price Direction (U / D) ===
+var string[] states = array.new_string()
+state = close > close[1] ? "U" : "D"
+array.push(states, state)
+if array.size(states) > window
+    array.shift(states)
+
+// === Compute Transition Probabilities ===
+var float p_UU = 0.0
+var float p_DD = 0.0
+int total_U = 0
+int total_D = 0
+
+for i = 1 to array.size(states) - 1
+    prev = array.get(states, i - 1)
+    curr = array.get(states, i)
+    if prev == "U"
+        total_U += 1
+        if curr == "U"
+            p_UU += 1
+    else
+        total_D += 1
+        if curr == "D"
+            p_DD += 1
+
+p_UU := total_U > 0 ? p_UU / total_U : na
+p_DD := total_D > 0 ? p_DD / total_D : na
+
+// === Determine Next Trade Direction ===
+upContinuation   = not na(p_UU) and p_UU > threshold and is_liquid
+downContinuation = not na(p_DD) and p_DD > threshold and is_liquid
+
+// === Entry Logic ===
+if upContinuation
+    strategy.entry("BUY", strategy.long)
+if downContinuation
+    strategy.entry("SELL", strategy.short)
+
+// === Visualization ===
+barcolor(upContinuation ? color.new(color.green, 0) : downContinuation ? color.new(color.red, 0) : na)
+
+
+if show_labels
+    label.new(bar_index, high, "P(U→U): " + str.tostring(p_UU, format.percent) + "\nP(D→D): " + str.tostring(p_DD, format.percent), style = label.style_label_left, color = color.new(color.silver, 60), textcolor = color.black, size = size.tiny)
+
+// === Programmatic alerts (use “Any alert() function call”) ===
+buyMsg  = '{"ticker":"' + syminfo.ticker + '","strategy.order.action":"buy","close":'  + str.tostring(close) + ',"strategy":"markov_chain","meta":{"target_value_usd":1000}}'
+sellMsg = '{"ticker":"' + syminfo.ticker + '","strategy.order.action":"sell","close":' + str.tostring(close) + ',"strategy":"markov_chain","meta":{"target_value_usd":1000}}'
+
+
+if upContinuation
+    strategy.entry("BUY", strategy.long,  alert_message = buyMsg)
+if downContinuation
+    strategy.entry("SELL", strategy.short, alert_message = sellMsg)
+
+// === Trend Overlay (Optional) ===
+ema_short = ta.ema(close, 20)
+ema_long  = ta.ema(close, 100)
+plot(ema_short, "EMA 20", color=color.yellow)
+plot(ema_long, "EMA 100", color=color.orange)

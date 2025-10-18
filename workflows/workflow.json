@@ -1,0 +1,73 @@
+{
+ "name": "TradingView → Signal Adapter",
+ "nodes": [
+   {
+     "parameters": {
+       "path": "tradingview",
+       "responseMode": "onReceived",
+       "options": {}
+     },
+     "id": "Webhook_TradingView",
+     "name": "TradingView Webhook",
+     "type": "n8n-nodes-base.webhook",
+     "typeVersion": 1,
+     "position": [200, 300]
+   },
+   {
+     "parameters": {
+       "functionCode": "return [{\n  json: {\n    symbol: $json[\"ticker\"] || $json[\"symbol\"],\n    side: $json[\"strategy.order.action\"] || $json[\"side\"],\n    price: $json[\"close\"] || $json[\"price\"],\n    ts: new Date().toISOString(),\n    strategy: $json[\"strategy\"] || \"tradingview\",\n    meta: $json\n  }\n}];"
+     },
+     "id": "Transform_Signal",
+     "name": "Transform → Common.Signal",
+     "type": "n8n-nodes-base.function",
+     "typeVersion": 1,
+     "position": [450, 300]
+   },
+   {
+     "parameters": {
+       "url": "http://signal-adapter:8000/signals",
+       "method": "POST",
+       "jsonParameters": true,
+       "options": {},
+       "bodyParametersJson": "={{ $json }}"
+     },
+     "id": "Send_SignalAdapter",
+     "name": "POST → Signal Adapter",
+     "type": "n8n-nodes-base.httpRequest",
+     "typeVersion": 1,
+     "position": [700, 300]
+   },
+   {
+     "parameters": {
+       "channel": "#trading-alerts",
+       "text": "📡 TradingView Signal received:\nSymbol: {{$json[\"symbol\"]}}\nSide: {{$json[\"side\"]}}\nPrice: {{$json[\"price\"]}}"
+     },
+     "id": "Slack_Notify",
+     "name": "Notify Slack",
+     "type": "n8n-nodes-base.slack",
+     "typeVersion": 1,
+     "position": [950, 300],
+     "credentials": {
+       "slackApi": "Slack Account"
+     }
+   }
+ ],
+ "connections": {
+   "Webhook_TradingView": {
+     "main": [
+       [{ "node": "Transform_Signal", "type": "main", "index": 0 }]
+     ]
+   },
+   "Transform_Signal": {
+     "main": [
+       [
+         { "node": "Send_SignalAdapter", "type": "main", "index": 0 },
+         { "node": "Slack_Notify", "type": "main", "index": 0 }
+       ]
+     ]
+   }
+ },
+ "active": true,
+ "settings": {},
+ "id": "Workflow_TradingView_Signal"
+}

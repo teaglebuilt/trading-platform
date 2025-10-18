@@ -1,0 +1,41 @@
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: market-analyst-agent
+  namespace: ai
+  labels:
+    app.kubernetes.io/name: market-analyst
+    app.kubernetes.io/part-of: ai-trading
+spec:
+  type: Declarative
+  description: >
+    Market Analyst Agent summarizes macro, sentiment, and volatility data for AI-driven trading.
+  declarative:
+    a2aConfig:
+      skills:
+      - id: market-context-analysis
+        name: Market Context Analysis
+        description: >
+          Collects and interprets global market signals such as sentiment, volatility, and sector trends.
+        tags: [ market, sentiment, volatility, macro ]
+        examples:
+        - "Summarize the current S&P 500 regime and sector leadership."
+        - "Describe the sentiment score for tech and energy sectors."
+    systemMessage: |
+{{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
+{{- if $configMap }}
+{{ index $configMap.data "market-analyst.md" | nindent 6 }}
+{{- else }}
+      # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
+{{- end }}
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    modelConfig: openai-gpt-4o-mini
