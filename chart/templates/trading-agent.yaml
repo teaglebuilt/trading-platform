@@ -17,52 +17,44 @@ spec:
       skills:
         - id: market-analyst
           name: Market Analyst
-          description: >
-            Synthesizes macro, sentiment, and volatility data.
+          description: Synthesizes macro, sentiment, and volatility data.
+          tags: ["market", "sentiment", "volatility"]
           examples:
             - "Summarize global equity sentiment and volatility."
         - id: strategy-engine
           name: Strategy Engine
-          description: >
-            Chooses appropriate trading strategies (EMA, Markov, Reinforcement) and emits trade signals.
+          description: Chooses appropriate trading strategies (EMA, Markov, Reinforcement) and emits trade signals.
+          tags: ["strategy", "signals", "ai"]
           examples:
             - "Generate buy/sell signals for current market context."
         - id: position-sizer
           name: Position Sizer
-          description: >
-            Determines order quantities based on risk policy and volatility.
+          description: Determines order quantities based on risk policy and volatility.
+          tags: ["risk", "position", "sizing"]
           examples:
             - "Compute lot size for AAPL given 1% risk and 20% volatility."
         - id: timing-agent
           name: Timing Agent
-          description: >
-            Confirms entry and exit conditions using intraday indicators.
+          description: Confirms entry and exit conditions using intraday indicators.
+          tags: ["timing", "execution", "confirmation"]
           examples:
             - "Should this signal execute now based on RSI and volume?"
         - id: governance
           name: Governance Agent
-          description: >
-            Validates trades against risk and compliance limits.
+          description: Validates trades against risk and compliance limits.
+          tags: ["risk", "governance", "compliance"]
           examples:
             - "Reject orders violating max drawdown or exposure constraints."
         - id: execution
           name: Trade Execution
-          description: >
-            Sends approved intents to external broker (Alpaca) and records results.
-          tools:
-            - remoteMcpServer: alpaca-mcp
-              toolNames: [submit_order, get_positions]
+          description: Sends approved intents to external broker (Alpaca) and records results.
+          tags: ["alpaca", "execution", "orders"]
           examples:
             - "Submit approved trades to Alpaca and return confirmations."
         - id: analytics
           name: Portfolio Analytics
-          description: >
-            Logs trades into DuckDB, computes PnL, and triggers n8n workflows.
-          tools:
-            - remoteMcpServer: duckdb-mcp
-              toolNames: [log_trade, calculate_pnl]
-            - remoteMcpServer: n8n-mcp
-              toolNames: [trigger_workflow, send_alert]
+          description: Logs trades into DuckDB, computes PnL, and triggers n8n workflows.
+          tags: ["analytics", "pnl", "automation"]
           examples:
             - "Generate daily PnL report and alert via n8n."
 
@@ -82,6 +74,13 @@ spec:
 
       Always output structured JSON with a top-level key indicating the stage and result, e.g.:
       {"stage":"analytics","approved_trades":[...],"pnl_report":{...}}
+    toolServers:
+      - remoteMcpServer: alpaca-mcp
+        toolNames: ["submit_order", "get_positions"]
+      - remoteMcpServer: duckdb-mcp
+        toolNames: ["log_trade", "calculate_pnl"]
+      - remoteMcpServer: n8n-mcp
+        toolNames: ["trigger_workflow", "send_alert"]
 
     deployment:
       replicas: 1
