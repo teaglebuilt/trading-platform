@@ -4,6 +4,9 @@ kind: Agent
 metadata:
   name: position-sizer-agent
   namespace: ai
+  labels:
+    app.kubernetes.io/name: position-sizer-agent
+    app.kubernetes.io/part-of: trading-platform
 spec:
   type: Declarative
   description: Determines trade size based on risk limits, volatility, and AI confidence.
@@ -33,4 +36,4 @@ spec:
         limits:
           cpu: 1
           memory: 512Mi
-    modelConfig: openai-gpt-4o-mini
+    modelConfig: default-model-config

@@ -2,25 +2,28 @@
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: timing-agent
+  name: governance-agent
   namespace: ai
+  labels:
+    app.kubernetes.io/name: governance-agent
+    app.kubernetes.io/part-of: trading-platform
 spec:
   type: Declarative
-  description: Validates entry timing using short-term indicators and volume.
+  description: Enforces safety and compliance for all automated trades.
   declarative:
     a2aConfig:
       skills:
-      - id: entry-timing
-        name: Entry Timing Validation
+      - id: risk-compliance
+        name: Risk and Compliance Validation
         description: >
-          Confirms optimal timing for executing trades using RSI, EMA, and volume data.
-        tags: [ timing, execution, signals ]
+          Validates OrderIntents against global risk, ethics, and compliance rules.
+        tags: [ risk, governance, policy ]
         examples:
-        - "Confirm if AAPL buy signal should execute now or wait based on RSI(14)."
+        - "Approve or reject trade intents exceeding daily loss limits."
     systemMessage: |
 {{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
 {{- if $configMap }}
-{{ index $configMap.data "timing-agent.md" | nindent 6 }}
+{{ index $configMap.data "governance-agent.md" | nindent 6 }}
 {{- else }}
       # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
 {{- end }}
@@ -33,4 +36,4 @@ spec:
         limits:
           cpu: 1
           memory: 512Mi
-    modelConfig: openai-gpt-4o-mini
+    modelConfig: default-model-config

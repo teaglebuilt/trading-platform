@@ -1,0 +1,95 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: trading-agent
+  namespace: ai
+  labels:
+    app.kubernetes.io/name: trading-agent
+    app.kubernetes.io/part-of: trading-platform
+spec:
+  type: Declarative
+  description: >
+    Composite AI hedge-fund orchestrator that coordinates market analysis,
+    strategy generation, risk sizing, trade timing, and governance. 
+    Acts as a controller for the specialized sub-agents.
+  declarative:
+    a2aConfig:
+      skills:
+        - id: market-analyst
+          name: Market Analyst
+          description: >
+            Synthesizes macro, sentiment, and volatility data.
+          examples:
+            - "Summarize global equity sentiment and volatility."
+        - id: strategy-engine
+          name: Strategy Engine
+          description: >
+            Chooses appropriate trading strategies (EMA, Markov, Reinforcement) and emits trade signals.
+          examples:
+            - "Generate buy/sell signals for current market context."
+        - id: position-sizer
+          name: Position Sizer
+          description: >
+            Determines order quantities based on risk policy and volatility.
+          examples:
+            - "Compute lot size for AAPL given 1% risk and 20% volatility."
+        - id: timing-agent
+          name: Timing Agent
+          description: >
+            Confirms entry and exit conditions using intraday indicators.
+          examples:
+            - "Should this signal execute now based on RSI and volume?"
+        - id: governance
+          name: Governance Agent
+          description: >
+            Validates trades against risk and compliance limits.
+          examples:
+            - "Reject orders violating max drawdown or exposure constraints."
+        - id: execution
+          name: Trade Execution
+          description: >
+            Sends approved intents to external broker (Alpaca) and records results.
+          tools:
+            - remoteMcpServer: alpaca-mcp
+              toolNames: [submit_order, get_positions]
+          examples:
+            - "Submit approved trades to Alpaca and return confirmations."
+        - id: analytics
+          name: Portfolio Analytics
+          description: >
+            Logs trades into DuckDB, computes PnL, and triggers n8n workflows.
+          tools:
+            - remoteMcpServer: duckdb-mcp
+              toolNames: [log_trade, calculate_pnl]
+            - remoteMcpServer: n8n-mcp
+              toolNames: [trigger_workflow, send_alert]
+          examples:
+            - "Generate daily PnL report and alert via n8n."
+
+    systemMessage: |
+      You are the AI Fund Orchestrator Agent — a digital hedge-fund manager.
+      Coordinate your internal skills (market-analyst → strategy-engine → position-sizer → timing-agent → governance → execution → analytics).
+      Pass outputs from one skill to the next as JSON payloads.
+
+      Expected high-level flow:
+      1. market-analyst → produce market_context
+      2. strategy-engine → generate signals
+      3. position-sizer → produce order_intents
+      4. timing-agent → validate entries
+      5. governance → approve or reject
+      6. execution → submit orders via Alpaca
+      7. analytics → record PnL and trigger reports
+
+      Always output structured JSON with a top-level key indicating the stage and result, e.g.:
+      {"stage":"analytics","approved_trades":[...],"pnl_report":{...}}
+
+    deployment:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1
+          memory: 1Gi
+    modelConfig: default-model-config

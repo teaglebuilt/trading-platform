@@ -1,25 +1,29 @@
+---
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: strategy-agent
+  name: timing-agent
   namespace: ai
+  labels:
+    app.kubernetes.io/name: timing-agent
+    app.kubernetes.io/part-of: trading-platform
 spec:
   type: Declarative
-  description: Selects trading strategies based on market context and historical backtests.
+  description: Validates entry timing using short-term indicators and volume.
   declarative:
     a2aConfig:
       skills:
-      - id: strategy-selection
-        name: Strategy Selection
+      - id: entry-timing
+        name: Entry Timing Validation
         description: >
-          Chooses trading strategies (EMA, Markov, Reinforcement) and outputs signals.
-        tags: [ strategy, ai, trading ]
+          Confirms optimal timing for executing trades using RSI, EMA, and volume data.
+        tags: [ timing, execution, signals ]
         examples:
-        - "Generate buy/sell signals for large-cap tech."
+        - "Confirm if AAPL buy signal should execute now or wait based on RSI(14)."
     systemMessage: |
 {{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
 {{- if $configMap }}
-{{ index $configMap.data "strategy-agent.md" | nindent 6 }}
+{{ index $configMap.data "timing-agent.md" | nindent 6 }}
 {{- else }}
       # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
 {{- end }}
@@ -32,4 +36,4 @@ spec:
         limits:
           cpu: 1
           memory: 512Mi
-    modelConfig: openai-gpt-4o-mini
+    modelConfig: default-model-config

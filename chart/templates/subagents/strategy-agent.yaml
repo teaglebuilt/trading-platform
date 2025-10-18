@@ -1,26 +1,28 @@
----
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
-  name: governance-agent
+  name: strategy-agent
   namespace: ai
+  labels:
+    app.kubernetes.io/name: strategy-agent
+    app.kubernetes.io/part-of: trading-platform
 spec:
   type: Declarative
-  description: Enforces safety and compliance for all automated trades.
+  description: Selects trading strategies based on market context and historical backtests.
   declarative:
     a2aConfig:
       skills:
-      - id: risk-compliance
-        name: Risk and Compliance Validation
+      - id: strategy-selection
+        name: Strategy Selection
         description: >
-          Validates OrderIntents against global risk, ethics, and compliance rules.
-        tags: [ risk, governance, policy ]
+          Chooses trading strategies (EMA, Markov, Reinforcement) and outputs signals.
+        tags: [ strategy, ai, trading ]
         examples:
-        - "Approve or reject trade intents exceeding daily loss limits."
+        - "Generate buy/sell signals for large-cap tech."
     systemMessage: |
 {{- $configMap := lookup "v1" "ConfigMap" "ai" "trading-agent-prompts" }}
 {{- if $configMap }}
-{{ index $configMap.data "governance-agent.md" | nindent 6 }}
+{{ index $configMap.data "strategy-agent.md" | nindent 6 }}
 {{- else }}
       # ConfigMap 'trading-agent-prompts' not found. Run: chart/scripts/create-agent-prompts.sh
 {{- end }}
@@ -33,4 +35,4 @@ spec:
         limits:
           cpu: 1
           memory: 512Mi
-    modelConfig: openai-gpt-4o-mini
+    modelConfig: default-model-config

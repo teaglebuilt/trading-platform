@@ -3,6 +3,7 @@
 # Alpaca API credentials
 # IMPORTANT: Override these values during installation
 # Example: helm install trading-agents ./chart --set alpaca.apiKey=xxx --set alpaca.secretKey=yyy
+
 alpaca:
   apiKey: ${ALPACA_API_KEY}
   secretKey: ${ALPACA_SECRET_KEY}
