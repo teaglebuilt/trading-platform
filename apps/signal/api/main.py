@@ -25,7 +25,7 @@ async def ingest_signal(sig: Signal):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-4
+
 def cli():
     import uvicorn
     uvicorn.run("signal_adapter.main:app", host="0.0.0.0", port=8000, reload=True)

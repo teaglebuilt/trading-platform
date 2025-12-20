@@ -26,8 +26,11 @@ except Exception:
         side: Literal["buy", "sell"]
         qty: float
         type: Literal["market", "limit"] = "market"
+        price: float | None = None
         limit_price: float | None = None
         time_in_force: str = "day"
+        tp_pct: float | None = None
+        sl_pct: float | None = None
         tag: str | None = None
 
 # ---- Strategy / Adapter interfaces ----

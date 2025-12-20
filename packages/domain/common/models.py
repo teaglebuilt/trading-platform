@@ -8,8 +8,8 @@ class Signal(BaseModel):
     symbol: str
     side: Literal["buy", "sell"]
     price: Optional[float] = None
-    ts: str
-    strategy: str
+    ts: Optional[str] = None
+    strategy: str = "unknown"
     meta: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -46,10 +46,10 @@ class Trade(BaseModel):
     """Executed trade information."""
     trade_id: str
     symbol: str
-    side: Literal["buy", "sell"]
+    side: str  # buy or sell
     qty: float
     fill_price: float
-    status: Literal["filled", "partially_filled", "canceled"]
+    status: str  # new, pending_new, accepted, filled, partially_filled, canceled, etc.
     ts: str
 
 
