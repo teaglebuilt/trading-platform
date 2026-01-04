@@ -1,0 +1,88 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  signal-api:
+    build:
+      context: .
+      dockerfile: apps/signal/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  engine:
+    build:
+      context: .
+      dockerfile: apps/engine/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ENABLE_RISK_PIPELINE=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  executor:
+    build:
+      context: .
+      dockerfile: apps/executor/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - ALPACA_PAPER=true
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  portfolio:
+    build:
+      context: .
+      dockerfile: apps/portfolio/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DUCKDB_FILE=/data/portfolio.db
+    volumes:
+      - portfolio-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  reporter:
+    build:
+      context: .
+      dockerfile: apps/reporter/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DUCKDB_FILE=/data/portfolio.db
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - DAILY_LOSS_LIMIT_PCT=0.02
+      - REPORT_INTERVAL_SECONDS=60
+    volumes:
+      - portfolio-data:/data:ro
+    depends_on:
+      - portfolio
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  portfolio-data:

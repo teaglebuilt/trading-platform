@@ -25,6 +25,7 @@
 
 ## 🔗 System Overview
 
+
 ```mermaid
 flowchart LR
   TV[TradingView / Webhooks] --> N8N[n8n Orchestrator]
@@ -49,6 +50,7 @@ flowchart LR
   RE --> SE
   RE --> PF
 ```
+
 
 
 ### N8N Orchestration
@@ -90,14 +92,20 @@ flowchart TD
   EX -.-> AM[Alpaca MCP]
 ```
 
+### Trading Team
+
+A team of agents is running on kubernetes with [KAgent]() using A2A for agent communication. Deployed with helm chart in [./chart](../chart/Chart.yaml)
+
+**Workflow Diagram**
+
 ```mermaid
 flowchart TD
     subgraph Agents["🤖 AI Subagents"]
-        A1[📈 Market Analyst Agent\n(Fundamentals, Sentiment, News)]
-        A2[🎯 Strategy Agent\n(EMA, Markov, Reinforcement)]
-        A3[💰 Position Sizer Agent\n(Risk-based sizing)]
-        A4[🕒 Timing Agent\n(Entry / Exit / Rebalance decisions)]
-        A5[🧾 Governance Agent\n(Safety rules, risk policy approval)]
+        A1[📈 Market Analyst Agent\n Fundamentals, Sentiment, News]
+        A2[🎯 Strategy Agent\n EMA, Markov, Reinforcement]
+        A3[💰 Position Sizer Agent\n Risk-based sizing]
+        A4[🕒 Timing Agent\n Entry / Exit / Rebalance decisions]
+        A5[🧾 Governance Agent\n Safety rules, risk policy approval]
     end
 
     subgraph MCP["⚙️ MCP Server / Strategy Engine"]

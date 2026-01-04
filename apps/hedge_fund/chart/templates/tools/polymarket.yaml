@@ -1,0 +1,12 @@
+---
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: polymarket-mcp
+  namespace: ai
+spec:
+  endpoint: "http://polymarket-adapter.ai.svc.cluster.local"  # your adapter svc
+  tools:
+    - name: list_markets
+    - name: get_market
+    - name: get_orderbook

@@ -5,6 +5,7 @@ import httpx
 from strategy_engine.interfaces import EngineAdapter, Signal, OrderIntent, Venue
 from strategy_engine.config import CONFIG
 
+
 class FreqtradeAdapter(EngineAdapter):
     name = "freqtrade"
 

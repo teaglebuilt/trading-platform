@@ -24,12 +24,20 @@ spec:
         - id: strategy-engine
           name: Strategy Engine
           description: Chooses appropriate trading strategies (EMA, Markov, Reinforcement) and emits trade signals.
+          inputModes:
+          - json
+          outputModes:
+          - json
           tags: ["strategy", "signals", "ai"]
           examples:
             - "Generate buy/sell signals for current market context."
         - id: position-sizer
           name: Position Sizer
           description: Determines order quantities based on risk policy and volatility.
+          inputModes:
+          - json
+          outputModes:
+          - json
           tags: ["risk", "position", "sizing"]
           examples:
             - "Compute lot size for AAPL given 1% risk and 20% volatility."
@@ -37,6 +45,10 @@ spec:
           name: Timing Agent
           description: Confirms entry and exit conditions using intraday indicators.
           tags: ["timing", "execution", "confirmation"]
+          inputModes:
+          - json
+          outputModes:
+          - json
           examples:
             - "Should this signal execute now based on RSI and volume?"
         - id: governance
@@ -74,14 +86,22 @@ spec:
 
       Always output structured JSON with a top-level key indicating the stage and result, e.g.:
       {"stage":"analytics","approved_trades":[...],"pnl_report":{...}}
-    toolServers:
-      - remoteMcpServer: alpaca-mcp
-        toolNames: ["submit_order", "get_positions"]
-      - remoteMcpServer: duckdb-mcp
-        toolNames: ["log_trade", "calculate_pnl"]
-      - remoteMcpServer: n8n-mcp
-        toolNames: ["trigger_workflow", "send_alert"]
-
+    tools:
+      - type: McpServer
+        mcpServer:
+          name: alpaca-mcp
+          kind: MCPServer
+          toolNames: ["submit_order", "get_positions"]
+      # - type: McpServer
+      #   mcpServer:
+      #     name: duckdb-mcp
+      #     kind: MCPServer
+      #     toolNames: ["log_trade", "calculate_pnl"]
+      # - type: McpServer
+      #   mcpServer:
+      #     name: n8n-mcp
+      #     kind: MCPServer
+      #     toolNames: ["trigger_workflow", "send_alert"]
     deployment:
       replicas: 1
       resources:
@@ -91,4 +111,10 @@ spec:
         limits:
           cpu: 1
           memory: 1Gi
+      env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: kagent-openai
+              key: OPENAI_API_KEY
     modelConfig: default-model-config

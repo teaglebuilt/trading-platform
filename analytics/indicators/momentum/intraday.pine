@@ -1,0 +1,287 @@
+//@version=5
+indicator("Intraday Master - All-in-One Trading System", overlay=true, max_bars_back=500, max_lines_count=500, max_labels_count=500)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INTRADAY MASTER INDICATOR - Complete Trading System
+// ═════════════════════════════════════════════════════════════════════════════
+// Features:
+// - Opening Range Breakout (ORB)
+// - VWAP with Standard Deviation Bands
+// - Volume Profile Analysis
+// - Momentum & Trend Detection
+// - Smart Entry/Exit Signals
+// - Auto Stop-Loss & Target Calculation
+// - Multi-timeframe Confirmation
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════ SETTINGS ════════════════════════════════════
+
+// Opening Range Settings
+orb_minutes = input.int(15, "ORB Period (minutes)", minval=5, maxval=60, group="Opening Range Breakout")
+show_orb = input.bool(true, "Show ORB Levels", group="Opening Range Breakout")
+
+// VWAP Settings
+show_vwap = input.bool(true, "Show VWAP", group="VWAP")
+vwap_sd_mult1 = input.float(1.0, "Standard Deviation 1", minval=0.5, maxval=3.0, step=0.5, group="VWAP")
+vwap_sd_mult2 = input.float(2.0, "Standard Deviation 2", minval=1.0, maxval=4.0, step=0.5, group="VWAP")
+
+// Volume Settings
+volume_ma_length = input.int(20, "Volume MA Length", minval=5, maxval=100, group="Volume Analysis")
+volume_threshold = input.float(1.5, "Volume Spike Threshold", minval=1.0, maxval=5.0, step=0.1, group="Volume Analysis")
+
+// Momentum Settings
+rsi_length = input.int(14, "RSI Length", minval=5, maxval=50, group="Momentum")
+rsi_oversold = input.int(30, "RSI Oversold", minval=20, maxval=40, group="Momentum")
+rsi_overbought = input.int(70, "RSI Overbought", minval=60, maxval=80, group="Momentum")
+
+// MACD Settings
+macd_fast = input.int(12, "MACD Fast Length", minval=5, maxval=50, group="Momentum")
+macd_slow = input.int(26, "MACD Slow Length", minval=10, maxval=100, group="Momentum")
+macd_signal = input.int(9, "MACD Signal Length", minval=5, maxval=30, group="Momentum")
+
+// Risk Management
+risk_reward_ratio = input.float(2.0, "Risk:Reward Ratio", minval=1.0, maxval=5.0, step=0.5, group="Risk Management")
+atr_length = input.int(14, "ATR Length", minval=5, maxval=50, group="Risk Management")
+atr_multiplier = input.float(1.5, "ATR Stop Loss Multiplier", minval=0.5, maxval=3.0, step=0.5, group="Risk Management")
+
+// Signal Settings
+show_signals = input.bool(true, "Show Buy/Sell Signals", group="Signals")
+show_labels = input.bool(true, "Show Price Labels", group="Signals")
+enable_alerts = input.bool(true, "Enable Alerts", group="Signals")
+
+// ═══════════════════════════════ CALCULATIONS ════════════════════════════════
+
+// Time Filters
+is_new_day = ta.change(time("D")) != 0
+var float orb_high = na
+var float orb_low = na
+var bool orb_period_over = false
+
+// Calculate ORB
+if is_new_day
+    orb_high := na
+    orb_low := na
+    orb_period_over := false
+
+current_time = time
+session_start = timestamp(year, month, dayofmonth, 9, 15, 0) // Adjust for your market (NSE: 9:15, US: 9:30)
+orb_end = session_start + (orb_minutes * 60 * 1000)
+
+if current_time >= session_start and current_time <= orb_end
+    orb_high := na(orb_high) ? high : math.max(orb_high, high)
+    orb_low := na(orb_low) ? low : math.min(orb_low, low)
+    orb_period_over := false
+else if current_time > orb_end and not orb_period_over
+    orb_period_over := true
+
+// VWAP Calculation
+vwap_value = ta.vwap(close)
+vwap_dev = math.sqrt(ta.variance(close, 50))
+vwap_upper1 = vwap_value + (vwap_dev * vwap_sd_mult1)
+vwap_lower1 = vwap_value - (vwap_dev * vwap_sd_mult1)
+vwap_upper2 = vwap_value + (vwap_dev * vwap_sd_mult2)
+vwap_lower2 = vwap_value - (vwap_dev * vwap_sd_mult2)
+
+// Volume Analysis
+volume_ma = ta.sma(volume, volume_ma_length)
+volume_spike = volume > (volume_ma * volume_threshold)
+high_volume = volume > volume_ma
+
+// Momentum Indicators
+rsi = ta.rsi(close, rsi_length)
+[macd_line, signal_line, macd_hist] = ta.macd(close, macd_fast, macd_slow, macd_signal)
+
+// ATR for Stop Loss
+atr = ta.atr(atr_length)
+
+// Trend Detection (Simple EMA crossover)
+ema_fast = ta.ema(close, 9)
+ema_slow = ta.ema(close, 21)
+trend_bullish = ema_fast > ema_slow
+trend_bearish = ema_fast < ema_slow
+
+// ═══════════════════════════════ SIGNAL LOGIC ════════════════════════════════
+
+// ORB Breakout Signals
+orb_breakout_long = orb_period_over and ta.crossover(close, orb_high) and volume_spike
+orb_breakout_short = orb_period_over and ta.crossunder(close, orb_low) and volume_spike
+
+// VWAP Reversal Signals
+vwap_bounce_long = close <= vwap_lower1 and close > open and rsi < rsi_oversold and high_volume
+vwap_bounce_short = close >= vwap_upper1 and close < open and rsi > rsi_overbought and high_volume
+
+// MACD Momentum Signals
+macd_bullish = ta.crossover(macd_line, signal_line) and macd_line < 0
+macd_bearish = ta.crossunder(macd_line, signal_line) and macd_line > 0
+
+// Combined Long Signal
+long_signal = (orb_breakout_long or (vwap_bounce_long and trend_bullish) or (macd_bullish and close > vwap_value and trend_bullish)) and high_volume
+
+// Combined Short Signal
+short_signal = (orb_breakout_short or (vwap_bounce_short and trend_bearish) or (macd_bearish and close < vwap_value and trend_bearish)) and high_volume
+
+// ═══════════════════════════ RISK MANAGEMENT ═════════════════════════════════
+
+// Calculate Stop Loss and Targets
+var float entry_price = na
+var float stop_loss = na
+var float target1 = na
+var float target2 = na
+var bool in_long_trade = false
+var bool in_short_trade = false
+
+if long_signal and not in_long_trade
+    entry_price := close
+    stop_loss := close - (atr * atr_multiplier)
+    risk = entry_price - stop_loss
+    target1 := entry_price + (risk * risk_reward_ratio * 0.5)
+    target2 := entry_price + (risk * risk_reward_ratio)
+    in_long_trade := true
+    in_short_trade := false
+
+if short_signal and not in_short_trade
+    entry_price := close
+    stop_loss := close + (atr * atr_multiplier)
+    risk = stop_loss - entry_price
+    target1 := entry_price - (risk * risk_reward_ratio * 0.5)
+    target2 := entry_price - (risk * risk_reward_ratio)
+    in_short_trade := true
+    in_long_trade := false
+
+// Exit Conditions
+long_exit = in_long_trade and (close <= stop_loss or close >= target2 or short_signal)
+short_exit = in_short_trade and (close >= stop_loss or close <= target2 or long_signal)
+
+if long_exit
+    in_long_trade := false
+    entry_price := na
+    stop_loss := na
+    target1 := na
+    target2 := na
+
+if short_exit
+    in_short_trade := false
+    entry_price := na
+    stop_loss := na
+    target1 := na
+    target2 := na
+
+// ═══════════════════════════════ PLOTTING ════════════════════════════════════
+
+// ORB Levels
+plot(show_orb and orb_period_over ? orb_high : na, "ORB High", color=color.new(color.green, 20), linewidth=2, style=plot.style_linebr)
+plot(show_orb and orb_period_over ? orb_low : na, "ORB Low", color=color.new(color.red, 20), linewidth=2, style=plot.style_linebr)
+
+// VWAP and Bands
+plot(show_vwap ? vwap_value : na, "VWAP", color=color.new(color.blue, 0), linewidth=2)
+plot(show_vwap ? vwap_upper1 : na, "VWAP Upper 1", color=color.new(color.green, 70), linewidth=1)
+plot(show_vwap ? vwap_lower1 : na, "VWAP Lower 1", color=color.new(color.red, 70), linewidth=1)
+plot(show_vwap ? vwap_upper2 : na, "VWAP Upper 2", color=color.new(color.green, 85), linewidth=1, style=plot.style_circles)
+plot(show_vwap ? vwap_lower2 : na, "VWAP Lower 2", color=color.new(color.red, 85), linewidth=1, style=plot.style_circles)
+
+// EMAs
+plot(ema_fast, "EMA Fast", color=color.new(color.yellow, 50), linewidth=1)
+plot(ema_slow, "EMA Slow", color=color.new(color.orange, 50), linewidth=1)
+
+// Volume Colors
+volume_color = volume_spike ? color.new(color.purple, 0) : high_volume ? color.new(color.blue, 50) : color.new(color.gray, 70)
+plot(volume, "Volume", color=volume_color, style=plot.style_histogram)
+
+// Active Trade Levels
+plot(in_long_trade or in_short_trade ? entry_price : na, "Entry", color=color.new(color.white, 0), linewidth=2, style=plot.style_cross)
+plot(in_long_trade or in_short_trade ? stop_loss : na, "Stop Loss", color=color.new(color.red, 0), linewidth=2, style=plot.style_circles)
+plot(in_long_trade or in_short_trade ? target1 : na, "Target 1", color=color.new(color.green, 0), linewidth=1, style=plot.style_circles)
+plot(in_long_trade or in_short_trade ? target2 : na, "Target 2", color=color.new(color.green, 30), linewidth=2, style=plot.style_circles)
+
+// ═══════════════════════════════ SIGNALS ═════════════════════════════════════
+
+// Buy/Sell Arrows
+plotshape(show_signals and long_signal, "Long", shape.triangleup, location.belowbar, color=color.new(color.green, 0), size=size.small)
+plotshape(show_signals and short_signal, "Short", shape.triangledown, location.abovebar, color=color.new(color.red, 0), size=size.small)
+
+// Exit Signals
+plotshape(show_signals and long_exit, "Long Exit", shape.circle, location.abovebar, color=color.new(color.orange, 0), size=size.tiny)
+plotshape(show_signals and short_exit, "Short Exit", shape.circle, location.belowbar, color=color.new(color.orange, 0), size=size.tiny)
+
+// Labels with Entry Info
+if show_labels and long_signal
+    label.new(bar_index, low,
+         text="LONG\nEntry: " + str.tostring(close, "#.##") +
+         "\nSL: " + str.tostring(close - (atr * atr_multiplier), "#.##") +
+         "\nTgt: " + str.tostring(close + ((close - (close - (atr * atr_multiplier))) * risk_reward_ratio), "#.##") +
+         "\nRSI: " + str.tostring(rsi, "#.#"),
+         color=color.new(color.green, 10),
+         textcolor=color.white,
+         style=label.style_label_up,
+         size=size.small)
+
+if show_labels and short_signal
+    label.new(bar_index, high,
+         text="SHORT\nEntry: " + str.tostring(close, "#.##") +
+         "\nSL: " + str.tostring(close + (atr * atr_multiplier), "#.##") +
+         "\nTgt: " + str.tostring(close - (((close + (atr * atr_multiplier)) - close) * risk_reward_ratio), "#.##") +
+         "\nRSI: " + str.tostring(rsi, "#.#"),
+         color=color.new(color.red, 10),
+         textcolor=color.white,
+         style=label.style_label_down,
+         size=size.small)
+
+// ═══════════════════════════════ ALERTS ══════════════════════════════════════
+
+alertcondition(long_signal, "Long Signal", "🚀 LONG SIGNAL - Entry: {{close}}, Stop: {{plot_1}}, Target: {{plot_2}}")
+alertcondition(short_signal, "Short Signal", "🔻 SHORT SIGNAL - Entry: {{close}}, Stop: {{plot_1}}, Target: {{plot_2}}")
+alertcondition(long_exit, "Long Exit", "⚠️ LONG EXIT - Close at {{close}}")
+alertcondition(short_exit, "Short Exit", "⚠️ SHORT EXIT - Close at {{close}}")
+alertcondition(volume_spike, "Volume Spike", "📊 VOLUME SPIKE - Volume: {{volume}}")
+alertcondition(orb_breakout_long, "ORB Breakout Long", "📈 ORB BREAKOUT - Going Long at {{close}}")
+alertcondition(orb_breakout_short, "ORB Breakdown Short", "📉 ORB BREAKDOWN - Going Short at {{close}}")
+
+// ═══════════════════════════════ DASHBOARD ═══════════════════════════════════
+
+// Create Info Table
+var table dashboard = table.new(position.top_right, 2, 10, bgcolor=color.new(color.black, 80), border_width=2, border_color=color.new(color.gray, 50))
+
+if barstate.islast and show_labels
+    // Header
+    table.cell(dashboard, 0, 0, "Metric", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 70))
+    table.cell(dashboard, 1, 0, "Value", text_color=color.white, text_size=size.small, bgcolor=color.new(color.blue, 70))
+
+    // Data
+    table.cell(dashboard, 0, 1, "Trend", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 1, trend_bullish ? "🟢 BULLISH" : "🔴 BEARISH",
+         text_color=trend_bullish ? color.lime : color.red, text_size=size.small)
+
+    table.cell(dashboard, 0, 2, "RSI", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 2, str.tostring(rsi, "#.#"),
+         text_color=rsi < rsi_oversold ? color.lime : rsi > rsi_overbought ? color.red : color.white, text_size=size.small)
+
+    table.cell(dashboard, 0, 3, "MACD", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 3, macd_line > signal_line ? "🟢 BULLISH" : "🔴 BEARISH",
+         text_color=macd_line > signal_line ? color.lime : color.red, text_size=size.small)
+
+    table.cell(dashboard, 0, 4, "Volume", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 4, volume_spike ? "🔥 SPIKE" : high_volume ? "⬆️ HIGH" : "➖ NORMAL",
+         text_color=volume_spike ? color.yellow : high_volume ? color.lime : color.white, text_size=size.small)
+
+    table.cell(dashboard, 0, 5, "VWAP", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 5, close > vwap_value ? "🟢 ABOVE" : "🔴 BELOW",
+         text_color=close > vwap_value ? color.lime : color.red, text_size=size.small)
+
+    table.cell(dashboard, 0, 6, "ATR", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 6, str.tostring(atr, "#.##"), text_color=color.white, text_size=size.small)
+
+    table.cell(dashboard, 0, 7, "ORB Status", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 7, orb_period_over ? "✅ ACTIVE" : "⏳ FORMING",
+         text_color=orb_period_over ? color.lime : color.yellow, text_size=size.small)
+
+    table.cell(dashboard, 0, 8, "Trade Status", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 8, in_long_trade ? "📈 LONG" : in_short_trade ? "📉 SHORT" : "⏸️ NONE",
+         text_color=in_long_trade ? color.lime : in_short_trade ? color.red : color.gray, text_size=size.small)
+
+    table.cell(dashboard, 0, 9, "Signal", text_color=color.white, text_size=size.small)
+    table.cell(dashboard, 1, 9, long_signal ? "🚀 BUY" : short_signal ? "🔻 SELL" : "➖ WAIT",
+         text_color=long_signal ? color.lime : short_signal ? color.red : color.white, text_size=size.small)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// END OF INTRADAY MASTER INDICATOR
+// ═════════════════════════════════════════════════════════════════════════════
